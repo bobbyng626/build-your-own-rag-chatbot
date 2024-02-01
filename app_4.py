@@ -1,9 +1,14 @@
 import streamlit as st
+import os
 from langchain_openai import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
 from langchain_community.vectorstores import AstraDB
 from langchain.schema.runnable import RunnableMap
 from langchain.prompts import ChatPromptTemplate
+
+
+os.environ["AZURE_OPENAI_API_KEY"] = st.secrets['OPENAI_API_KEY'],
+os.environ["AZURE_OPENAI_ENDPOINT"] = st.secrets['AZURE_OPENAI_ENDPOINT'],
 
 # Cache prompt for future runs
 @st.cache_data()
@@ -21,12 +26,19 @@ prompt = load_prompt()
 # Cache OpenAI Chat Model for future runs
 @st.cache_resource()
 def load_chat_model():
-    return ChatOpenAI(
-        temperature=0.3,
-        model='gpt-3.5-turbo',
+    model = AzureChatOpenAI(
+        openai_api_version="2023-07-01-preview",
+        azure_deployment="gpt-35-turbo",
         streaming=True,
         verbose=True
     )
+    return model
+    # AzureChatOpenAI(
+    #     temperature=0.3,
+    #     model='gpt-3.5-turbo',
+    #     streaming=True,
+    #     verbose=True
+    # )
 chat_model = load_chat_model()
 
 # Start with empty messages, stored in session state

@@ -1,7 +1,7 @@
 import streamlit as st
 import os
-from langchain_openai import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings, AzureOpenAIEmbeddings
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
 from langchain_community.vectorstores import AstraDB
 from langchain.schema.runnable import RunnableMap
 from langchain.prompts import ChatPromptTemplate
@@ -36,25 +36,36 @@ prompt = load_prompt()
 # Cache OpenAI Chat Model for future runs
 @st.cache_resource()
 def load_chat_model():
-    return ChatOpenAI(
-        temperature=0.3,
-        model='gpt-3.5-turbo',
+    model = AzureChatOpenAI(
+        openai_api_version="2023-07-01-preview",
+        azure_deployment="gpt-35-turbo",
         streaming=True,
         verbose=True
     )
+    return model
+    # AzureChatOpenAI(
+    #     temperature=0.3,
+    #     model='gpt-3.5-turbo',
+    #     streaming=True,
+    #     verbose=True
+    # )
 chat_model = load_chat_model()
 
 # Cache the Astra DB Vector Store for future runs
 @st.cache_resource(show_spinner='Connecting to Astra')
 def load_retriever():
     # Connect to the Vector Store
+    embeddings = AzureOpenAIEmbeddings(
+        azure_deployment="text-embedding-ada-002-2",
+        openai_api_version="2023-07-01-preview",
+    )
+    # Connect to the Vector Store
     vector_store = AstraDB(
-        embedding=OpenAIEmbeddings(),
+        embedding=embeddings,
         collection_name="my_store",
         api_endpoint=st.secrets['ASTRA_API_ENDPOINT'],
         token=st.secrets['ASTRA_TOKEN']
     )
-
     # Get the retriever for the Chat Model
     retriever = vector_store.as_retriever(
         search_kwargs={"k": 5}
